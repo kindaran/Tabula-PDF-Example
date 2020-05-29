@@ -19,15 +19,21 @@ def generateOutputFilename(p_filename):
 # END DEF
 
 # Read pdf into list of DataFrame
-df = tab.read_pdf(r"D:\Downloads\questrade_bonds_list.pdf", stream=True,pages="14-29")
+print("Reading PDF")
+df = tab.read_pdf(r"~/Downloads/questrade_bonds_list.pdf", stream=True,pages="15-31")
 
 df_combined = pd.DataFrame()
 
+print("Concat all PDF tables")
 df_combined = pd.concat(df).drop_duplicates()
 
+print("Set index")
 df_combined.index = df_combined["CUSIP"]
 
+print("Filter columns")
 df_combined = df_combined.loc[:,["ISSUER","COUPON","MATURITY","PRICE","YIELD","DBRS","FEATURE"]]
+
+print("Create new columns")
 
 df_combined = df_combined.assign(
         TOTAL_COST=(df_combined["PRICE"]/100)*5000,
@@ -39,12 +45,15 @@ df_combined = df_combined.assign(
         MATURITY_YEAR=pd.to_datetime(df_combined["MATURITY"],format="%Y-%m-%d").dt.year
 )
 
+print("Cleanup columns")
 df_combined.drop(df_combined[ df_combined["YEARS"] > 6.0 ].index,inplace=True)
 
+print("Sort")
 df_combined.sort_values(by=["MATURITY_YEAR","AY"],ascending=False,inplace=True)
 
 print(df_combined)
 
 filename = generateOutputFilename("bond_candidates")
 
-df_combined.to_csv(filename, index=False, quoting=1)
+print("Write to CSV")
+df_combined.to_csv(filename, index=True, quoting=1)
