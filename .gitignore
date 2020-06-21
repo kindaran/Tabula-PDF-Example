@@ -125,3 +125,4 @@ dmypy.json
 
 #additional files
 bond_candidates*
+*.pdf
