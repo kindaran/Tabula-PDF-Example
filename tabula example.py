@@ -4,6 +4,9 @@ import logging
 import sys
 from datetime import datetime
 
+from requests import get  # to make GET request
+
+
 ##########
 ## Functions
 ##########
@@ -82,6 +85,27 @@ def generateOutputFilename(p_filename,p_extension):
         return None
 # END DEF
 
+def downloadFile(p_url, p_output_filename):
+    
+    try:
+        logging.info("***RETRIEVING FILE FROM: {}".format(p_url))
+        # open in binary mode
+        with open(p_output_filename, "wb") as file:
+            # get request
+            response = get(p_url)
+            response.raise_for_status()
+            
+            # write to file
+            logging.debug("Writing file to {}".format(p_output_filename))
+            file.write(response.content)
+            return True
+    except Exception as e:
+        msg = str(e)
+        logging.error("*****Error in generateOutputFilename. Error: %s" % (msg))
+        return False
+ 
+#END DEF
+        
 ##########
 ## Main
 ##########
@@ -98,6 +122,15 @@ def main():
         sourceFilename = args[1]
         pageRange = args[2]
         
+        # get file from web site
+        if not downloadFile(
+                "https://www.questrade.com/docs/librariesprovider7/default-document-library/questrade_bonds_list.pdf",
+                "questrade_bonds_list.pdf"
+        ):
+            logging.error("Unable to retrieve file from web - EXITING")
+            return
+        #END IF
+                
         # Read pdf into list of DataFrame
         logging.info("Reading PDF")
         df = tab.read_pdf(sourceFilePath + sourceFilename, stream=True,pages=pageRange)
