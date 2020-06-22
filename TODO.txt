@@ -5,3 +5,7 @@ Initial thoughts:
 
 DONE: Can I automate retrieving data?
 Can I automate picking specific bonds?
+
+2020-06-22
+This data is also available in an Excel file. From an automation standpoint, that is better than using the PDF.
+- would like to redesign interface to use the Excel file.
