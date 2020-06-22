@@ -1,7 +1,7 @@
 2020-06-21
 Automate generation of bond candidates.
 Initial thoughts:
-* command line args: pdf path, filename, page range "<start>-<finish>"
+* command line args: pdf path, filename, page range "<start>-<finish>" [DONE]
 
-Can I automate retrieving data?
+DONE: Can I automate retrieving data?
 Can I automate picking specific bonds?
