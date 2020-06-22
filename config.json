@@ -1,0 +1,7 @@
+{
+    "url"           : "https://www.questrade.com/docs/librariesprovider7/default-document-library/questrade_bonds_list.pdf",
+    "page_range"    : "14-30",
+    "index_column"  : "CUSIP",
+    "keep_columns"  : ["ISSUER","COUPON","MATURITY","PRICE","YIELD","DBRS","FEATURE"],
+    "csv_filename"  : "bond_candidates"
+}
