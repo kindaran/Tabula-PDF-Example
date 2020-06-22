@@ -1,75 +1,72 @@
-import tabula as tab
-import pandas as pd
 import logging
 import sys
 from datetime import datetime
 
+import pandas as pd
+import tabula as tab
 from requests import get  # to make GET request
-
+import json 
 
 ##########
 ## Functions
 ##########
 
 def getArgs():
-    '''
-        Parameters:
-        * n/a
-        
-        Return:
-        list object: containing values retrieved from sys.argv
-        None: on error
-        
-        Details:        
+    """
+        * current args: config filepath, config filename
         * test length of sys.argv
+        * if argv count is "incorrect", will print out a message to remind user of args required    
         * retrieve commandline args
-        * for source file path, will test if arg has an ending slash. If not, adds one
-        * if argv count is "incorrect", will print out a message to remind user of args required
-    '''
+        * for filepath, will test if arg has an ending slash. If not, adds one
+
+    Returns:
+        list object: containing values retrieved from sys.argv
+        None: on handled error
+    """
+
     args = []
 
     try:
         logging.info("***RETRIEVING COMMAND LINE ARGS")
-        if len(sys.argv) == 4:
-            sourceFilePath = sys.argv[1]
-            if sourceFilePath[-1] != "/": 
-                sourceFilePath += "/"            
+        if len(sys.argv) == 3:
+            configFilePath = sys.argv[1]
+            if configFilePath[-1] != "/": 
+                configFilePath += "/"            
             #END IF
-            args.append(sourceFilePath)
-            sourceFilename = sys.argv[2]
-            args.append(sourceFilename)
-            pages = sys.argv[3]
-            args.append(pages)
-            logging.debug("Commandline args used:\r\n {} \r\n {} \r\n {}".format(sourceFilePath,sourceFilename,pages))
+            args.append(configFilePath)
+            
+            configFilename = sys.argv[2]
+            args.append(configFilename)
+            
+            logging.debug("Commandline args used:\r\n {} \r\n {}".format(configFilePath,configFilename))
             return args
         else:
             logging.error("Not enough arguments provided.")
             print(
-                "Incorrect arguments provided\r\nPlease include path to source file, filename, and page range")
+                "Incorrect arguments provided\r\nPlease include path to config file and filename")
             return None
     except Exception as e:
         msg = str(e)
-        logging.error("*****Error in getArgs. Args: {}  Error: {}".format(sys.argv, msg))
+        logging.error("*****Error in getArgs. Error: {}".format(msg))
         return None
 # END DEF
 
 def generateOutputFilename(p_filename,p_extension):
-    '''
-        Parameters:
-        * p_filename: a filename, possibly including pathing and extension, to start with as a base
-        * p_extension: an extension string value for the target filename. This makes this proc a bit more generic
-            to use across different apps. 
-        
-        Return:
-        * string: the input filename modified
-        * None: on error
-        
-        Details:
+    """
         * get current datetime
         * parse the filename param to extract only the filename without pathing and without extension
-        * recreate filename as: <base filename> + "_" + <datetime as format YYYYMMDDHHMISS> + ".csv"
-        
-    '''
+        * recreate filename as: <base filename> + "_" + <datetime as format YYYYMMDDHHMISS> + ".csv"    
+
+    Args:
+        p_filename (string): a filename, possibly including pathing and extension, to start with as a base
+        p_extension (string): an extension string value for the target filename. This makes this proc a bit more generic
+            to use across different apps. 
+
+    Returns:
+        string: the input filename modified
+        None: on handled error
+    """
+
     try:
         logging.info("*****GENERATE FILE NAME")
         # strips the raw filename out of file string
@@ -77,34 +74,41 @@ def generateOutputFilename(p_filename,p_extension):
         current_datetime = datetime.strftime(
         datetime.now(), "%Y%m%d%H%M%S")
         output_filename = filename + "_" + current_datetime + "." + p_extension
-        print("Output filename: %s" % (output_filename))
+        logging.debug("Output filename: %s" % (output_filename))
         return output_filename
     except Exception as e:
         msg = str(e)
-        logging.error("*****Error in generateOutputFilename. Error: %s" % (msg))
+        logging.error("*****Error in generateOutputFilename. Error: {}".format(msg))
         return None
 # END DEF
+        
+def loadConfigFile(p_path):
+    """
+    Given a path/filename, loads a JSON format file and returns file content
 
-def downloadFile(p_url, p_output_filename):
-    
+    Args:
+        p_path (string): path/filename to a json file
+
+    Returns:
+        dictionary: returns json file content in dictionary structure
+        None: on handled error
+    """
+    data = None
+
     try:
-        logging.info("***RETRIEVING FILE FROM: {}".format(p_url))
-        # open in binary mode
-        with open(p_output_filename, "wb") as file:
-            # get request
-            response = get(p_url)
-            response.raise_for_status()
-            
-            # write to file
-            logging.debug("Writing file to {}".format(p_output_filename))
-            file.write(response.content)
-            return True
+        logging.info("*****LOAD CONFIG FILE")
+        with open(p_path, 'r') as read_file:
+            data = json.load(read_file)
+        # END WITH
+
+        logging.debug("Config file content is:\r\n %s" %(json.dumps(data)))
+        return data
     except Exception as e:
         msg = str(e)
-        logging.error("*****Error in generateOutputFilename. Error: %s" % (msg))
-        return False
- 
-#END DEF
+        logging.error("*****Error in loadConfigFile. Error: {}".format(msg))
+        return None
+
+# END DEF
         
 ##########
 ## Main
@@ -118,35 +122,31 @@ def main():
             return
         #END IF
 
-        sourceFilePath = args[0]
-        sourceFilename = args[1]
-        pageRange = args[2]
+        configFilePath = args[0] + args[1]
         
-        # get file from web site
-        if not downloadFile(
-                "https://www.questrade.com/docs/librariesprovider7/default-document-library/questrade_bonds_list.pdf",
-                "questrade_bonds_list.pdf"
-        ):
-            logging.error("Unable to retrieve file from web - EXITING")
+        # load JSON config file
+        configFile = loadConfigFile(configFilePath)
+        if configFile == None:
+            logging.info("Unable to retrieve config file - ending")
             return
-        #END IF
-                
+        # END IF
+
         # Read pdf into list of DataFrame
-        logging.info("Reading PDF")
-        df = tab.read_pdf(sourceFilePath + sourceFilename, stream=True,pages=pageRange)
+        logging.info("***READING PDF")
+        df = tab.read_pdf(configFile["url"], stream=True,pages=configFile["page_range"])
 
         df_combined = pd.DataFrame()
 
-        logging.info("Concat all PDF tables")
+        logging.info("***CONCAT ALL PDF TABLES")
         df_combined = pd.concat(df).drop_duplicates()
 
-        logging.info("Set index")
-        df_combined.index = df_combined["CUSIP"]
+        logging.info("***SET INDEX")
+        df_combined.index = df_combined[configFile["index_column"]]
 
-        logging.info("Filter columns")
-        df_combined = df_combined.loc[:,["ISSUER","COUPON","MATURITY","PRICE","YIELD","DBRS","FEATURE"]]
+        logging.info("***FILTER COLUMNS")
+        df_combined = df_combined.loc[:,configFile["keep_columns"]]
 
-        logging.info("Create new columns")
+        logging.info("***CREATE NEW COLUMNS")
 
         df_combined = df_combined.assign(
                 TOTAL_COST=(df_combined["PRICE"]/100)*5000,
@@ -158,21 +158,21 @@ def main():
                 MATURITY_YEAR=pd.to_datetime(df_combined["MATURITY"],format="%Y-%m-%d").dt.year
         )
 
-        logging.info("Cleanup columns")
+        logging.info("***CLEANUP COLUMNS")
         df_combined.drop(df_combined[ df_combined["YEARS"] > 6.0 ].index,inplace=True)
 
-        logging.info("Sort")
+        logging.info("***SORT")
         df_combined.sort_values(by=["MATURITY_YEAR","AY"],ascending=False,inplace=True)
 
         logging.debug(df_combined)
 
-        filename = generateOutputFilename("bond_candidates","csv")
+        filename = generateOutputFilename(configFile["csv_filename"],"csv")
         if filename == None:
             logging.error("Unable to a filename for output - EXITING")
             return
         #END IF
         
-        logging.info("Write to CSV")
+        logging.info("WRITE TO CSV")
         df_combined.to_csv(filename, index=True, quoting=1)
 
     except Exception as e:
