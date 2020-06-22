@@ -4,7 +4,6 @@ from datetime import datetime
 
 import pandas as pd
 import tabula as tab
-from requests import get  # to make GET request
 import json 
 
 ##########
